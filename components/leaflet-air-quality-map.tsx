@@ -238,6 +238,237 @@ function MapComponent({
       type: "industrial",
       city: "Hyderabad",
     },
+    // Ahmedabad
+    {
+      id: "ahmedabad-1",
+      name: "Ahmedabad City Center Monitor",
+      position: [23.0225, 72.5714],
+      aqi: 145,
+      pollutants: { pm25: 64, pm10: 88, no2: 41, o3: 67 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "government",
+      city: "Ahmedabad",
+    },
+    {
+      id: "ahmedabad-2",
+      name: "Bopal Industrial Area",
+      position: [23.0395, 72.4347],
+      aqi: 167,
+      pollutants: { pm25: 72, pm10: 96, no2: 48, o3: 59 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "industrial",
+      city: "Ahmedabad",
+    },
+    // Jaipur
+    {
+      id: "jaipur-1",
+      name: "Pink City Heritage Monitor",
+      position: [26.9124, 75.7873],
+      aqi: 132,
+      pollutants: { pm25: 58, pm10: 79, no2: 36, o3: 71 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "government",
+      city: "Jaipur",
+    },
+    {
+      id: "jaipur-2",
+      name: "Malviya Nagar Residential",
+      position: [26.8467, 75.8648],
+      aqi: 118,
+      pollutants: { pm25: 52, pm10: 71, no2: 33, o3: 68 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "residential",
+      city: "Jaipur",
+    },
+    // Surat
+    {
+      id: "surat-1",
+      name: "Surat Diamond City Monitor",
+      position: [21.1702, 72.8311],
+      aqi: 128,
+      pollutants: { pm25: 56, pm10: 74, no2: 39, o3: 65 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "government",
+      city: "Surat",
+    },
+    {
+      id: "surat-2",
+      name: "Hazira Industrial Complex",
+      position: [21.1038, 72.6158],
+      aqi: 156,
+      pollutants: { pm25: 68, pm10: 89, no2: 45, o3: 58 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "industrial",
+      city: "Surat",
+    },
+    // Lucknow
+    {
+      id: "lucknow-1",
+      name: "Hazratganj Commercial Hub",
+      position: [26.8467, 80.9462],
+      aqi: 189,
+      pollutants: { pm25: 82, pm10: 108, no2: 54, o3: 49 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "government",
+      city: "Lucknow",
+    },
+    {
+      id: "lucknow-2",
+      name: "Gomti Nagar Extension",
+      position: [26.8512, 81.0735],
+      aqi: 174,
+      pollutants: { pm25: 76, pm10: 99, no2: 47, o3: 52 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "residential",
+      city: "Lucknow",
+    },
+    // Kanpur
+    {
+      id: "kanpur-1",
+      name: "Kanpur Industrial Belt Monitor",
+      position: [26.4499, 80.3319],
+      aqi: 201,
+      pollutants: { pm25: 89, pm10: 118, no2: 58, o3: 44 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "industrial",
+      city: "Kanpur",
+    },
+    {
+      id: "kanpur-2",
+      name: "Civil Lines Traffic Junction",
+      position: [26.467, 80.3502],
+      aqi: 195,
+      pollutants: { pm25: 85, pm10: 112, no2: 62, o3: 41 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "traffic",
+      city: "Kanpur",
+    },
+    // Nagpur
+    {
+      id: "nagpur-1",
+      name: "Nagpur Central Railway Station",
+      position: [21.1458, 79.0882],
+      aqi: 115,
+      pollutants: { pm25: 50, pm10: 68, no2: 31, o3: 73 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "traffic",
+      city: "Nagpur",
+    },
+    {
+      id: "nagpur-2",
+      name: "Sitabuldi Commercial Area",
+      position: [21.1498, 79.0806],
+      aqi: 108,
+      pollutants: { pm25: 47, pm10: 63, no2: 29, o3: 76 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "government",
+      city: "Nagpur",
+    },
+    // Indore
+    {
+      id: "indore-1",
+      name: "Indore Rajwada Heritage Monitor",
+      position: [22.7196, 75.8577],
+      aqi: 122,
+      pollutants: { pm25: 53, pm10: 72, no2: 34, o3: 69 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "government",
+      city: "Indore",
+    },
+    {
+      id: "indore-2",
+      name: "Pithampur Industrial Area",
+      position: [22.6058, 75.6897],
+      aqi: 139,
+      pollutants: { pm25: 61, pm10: 83, no2: 42, o3: 63 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "industrial",
+      city: "Indore",
+    },
+    // Patna
+    {
+      id: "patna-1",
+      name: "Patna Gandhi Maidan Monitor",
+      position: [25.5941, 85.1376],
+      aqi: 218,
+      pollutants: { pm25: 96, pm10: 128, no2: 64, o3: 38 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "government",
+      city: "Patna",
+    },
+    {
+      id: "patna-2",
+      name: "Boring Road Traffic Monitor",
+      position: [25.6093, 85.1235],
+      aqi: 234,
+      pollutants: { pm25: 104, pm10: 142, no2: 71, o3: 35 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "traffic",
+      city: "Patna",
+    },
+    // Bhopal
+    {
+      id: "bhopal-1",
+      name: "Bhopal Upper Lake Monitor",
+      position: [23.2599, 77.4126],
+      aqi: 95,
+      pollutants: { pm25: 41, pm10: 56, no2: 26, o3: 78 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "government",
+      city: "Bhopal",
+    },
+    {
+      id: "bhopal-2",
+      name: "MP Nagar Commercial Zone",
+      position: [23.2315, 77.4374],
+      aqi: 103,
+      pollutants: { pm25: 45, pm10: 61, no2: 28, o3: 74 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "residential",
+      city: "Bhopal",
+    },
+    // Visakhapatnam
+    {
+      id: "visakhapatnam-1",
+      name: "Vizag Steel Plant Monitor",
+      position: [17.6868, 83.2185],
+      aqi: 142,
+      pollutants: { pm25: 62, pm10: 84, no2: 38, o3: 66 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "industrial",
+      city: "Visakhapatnam",
+    },
+    {
+      id: "visakhapatnam-2",
+      name: "RK Beach Coastal Monitor",
+      position: [17.7231, 83.326],
+      aqi: 87,
+      pollutants: { pm25: 37, pm10: 52, no2: 23, o3: 81 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "government",
+      city: "Visakhapatnam",
+    },
+    // Coimbatore
+    {
+      id: "coimbatore-1",
+      name: "Coimbatore Textile Hub Monitor",
+      position: [11.0168, 76.9558],
+      aqi: 91,
+      pollutants: { pm25: 39, pm10: 54, no2: 24, o3: 79 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "industrial",
+      city: "Coimbatore",
+    },
+    {
+      id: "coimbatore-2",
+      name: "Gandhipuram Bus Stand",
+      position: [11.0183, 76.9725],
+      aqi: 98,
+      pollutants: { pm25: 42, pm10: 58, no2: 27, o3: 75 },
+      lastUpdated: "2024-01-15T12:00:00Z",
+      type: "traffic",
+      city: "Coimbatore",
+    },
   ]
 
   const generateHeatmapData = (): HeatmapPoint[] => {
@@ -251,6 +482,17 @@ function MapComponent({
       { center: [12.9716, 77.5946], intensity: 0.6, name: "Bangalore" }, // Bangalore
       { center: [13.0827, 80.2707], intensity: 0.7, name: "Chennai" }, // Chennai
       { center: [22.5726, 88.3639], intensity: 0.9, name: "Kolkata" }, // Kolkata
+      { center: [23.0225, 72.5714], intensity: 0.75, name: "Ahmedabad" }, // Ahmedabad
+      { center: [26.9124, 75.7873], intensity: 0.65, name: "Jaipur" }, // Jaipur
+      { center: [21.1702, 72.8311], intensity: 0.7, name: "Surat" }, // Surat
+      { center: [26.8467, 80.9462], intensity: 0.85, name: "Lucknow" }, // Lucknow
+      { center: [26.4499, 80.3319], intensity: 0.9, name: "Kanpur" }, // Kanpur
+      { center: [21.1458, 79.0882], intensity: 0.6, name: "Nagpur" }, // Nagpur
+      { center: [22.7196, 75.8577], intensity: 0.65, name: "Indore" }, // Indore
+      { center: [25.5941, 85.1376], intensity: 0.95, name: "Patna" }, // Patna
+      { center: [23.2599, 77.4126], intensity: 0.55, name: "Bhopal" }, // Bhopal
+      { center: [17.6868, 83.2185], intensity: 0.7, name: "Visakhapatnam" }, // Visakhapatnam
+      { center: [11.0168, 76.9558], intensity: 0.6, name: "Coimbatore" }, // Coimbatore
     ]
 
     cityHotspots.forEach((hotspot) => {
@@ -498,7 +740,21 @@ export function LeafletAirQualityMap({
     { name: "Kolkata", center: [22.5726, 88.3639], zoom: 11 },
     { name: "Pune", center: [18.5204, 73.8567], zoom: 11 },
     { name: "Hyderabad", center: [17.385, 78.4867], zoom: 11 },
+    { name: "Ahmedabad", center: [23.0225, 72.5714], zoom: 11 },
+    { name: "Jaipur", center: [26.9124, 75.7873], zoom: 11 },
+    { name: "Surat", center: [21.1702, 72.8311], zoom: 11 },
+    { name: "Lucknow", center: [26.8467, 80.9462], zoom: 11 },
+    { name: "Kanpur", center: [26.4499, 80.3319], zoom: 11 },
+    { name: "Nagpur", center: [21.1458, 79.0882], zoom: 11 },
+    { name: "Indore", center: [22.7196, 75.8577], zoom: 11 },
+    { name: "Patna", center: [25.5941, 85.1376], zoom: 11 },
+    { name: "Bhopal", center: [23.2599, 77.4126], zoom: 11 },
+    { name: "Visakhapatnam", center: [17.6868, 83.2185], zoom: 11 },
+    { name: "Coimbatore", center: [11.0168, 76.9558], zoom: 11 },
   ]
+
+  console.log("[v0] Major cities array:", majorCities.length, "cities")
+  console.log("[v0] Current city:", currentCity.name)
 
   // Time-lapse animation
   useEffect(() => {
@@ -577,19 +833,30 @@ export function LeafletAirQualityMap({
               <Select
                 value={currentCity.name}
                 onValueChange={(value) => {
+                  console.log("[v0] City selected:", value)
                   const city = majorCities.find((c) => c.name === value)
-                  if (city) setCurrentCity(city)
+                  if (city) {
+                    console.log("[v0] Setting city:", city)
+                    setCurrentCity(city)
+                  }
                 }}
               >
-                <SelectTrigger className="w-36 h-8 bg-slate-800 border-slate-600 text-xs">
-                  <SelectValue />
+                <SelectTrigger className="w-48 h-8 bg-slate-800 border-slate-600 text-xs text-white">
+                  <SelectValue placeholder="Select a city" />
                 </SelectTrigger>
-                <SelectContent>
-                  {majorCities.map((city) => (
-                    <SelectItem key={city.name} value={city.name}>
-                      {city.name}
-                    </SelectItem>
-                  ))}
+                <SelectContent className="bg-slate-800 border-slate-600">
+                  {majorCities.map((city) => {
+                    console.log("[v0] Rendering city option:", city.name)
+                    return (
+                      <SelectItem
+                        key={city.name}
+                        value={city.name}
+                        className="text-white hover:bg-slate-700 focus:bg-slate-700"
+                      >
+                        {city.name}
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>
