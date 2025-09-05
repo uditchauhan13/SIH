@@ -825,7 +825,7 @@ export function LeafletAirQualityMap({
   return (
     <div className={`relative w-full h-full ${className}`}>
       {/* Enhanced Map Controls */}
-      <div className="absolute top-4 left-4 z-[1000] space-y-2">
+      <div className="absolute top-4 left-4 z-[1000] space-y-2 max-w-xs">
         <Card className="p-3 bg-slate-900/95 border-slate-700 backdrop-blur-sm">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -940,7 +940,7 @@ export function LeafletAirQualityMap({
 
       {/* Enhanced Station Details Panel */}
       {selectedStation && (
-        <div className="absolute top-4 right-4 z-[1000] w-80">
+        <div className="absolute top-4 right-4 z-[1000] w-80 max-h-[calc(100vh-8rem)] overflow-y-auto">
           <Card className="p-4 bg-slate-900/95 border-slate-700 backdrop-blur-sm">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -1018,58 +1018,36 @@ export function LeafletAirQualityMap({
       </div>
 
       {/* Enhanced Legend */}
-      <div className="absolute bottom-4 left-4 z-[1000]">
+      <div className="absolute bottom-4 right-4 z-[1000] max-w-xs">
         <Card className="p-3 bg-slate-900/95 border-slate-700 backdrop-blur-sm">
           <h4 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
             <Building2 className="w-4 h-4" />
-            Air Quality Index
+            AQI Legend
           </h4>
-          <div className="space-y-1 text-xs">
+          <div className="grid grid-cols-1 gap-1 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500" />
-              <span className="text-slate-300">0-50 Good</span>
+              <div className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0" />
+              <span className="text-slate-300 truncate">0-50 Good</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-yellow-500" />
-              <span className="text-slate-300">51-100 Moderate</span>
+              <div className="w-3 h-3 rounded-full bg-yellow-500 flex-shrink-0" />
+              <span className="text-slate-300 truncate">51-100 Moderate</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-orange-500" />
-              <span className="text-slate-300">101-150 Unhealthy for Sensitive</span>
+              <div className="w-3 h-3 rounded-full bg-orange-500 flex-shrink-0" />
+              <span className="text-slate-300 truncate">101-150 Unhealthy</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <span className="text-slate-300">151-200 Unhealthy</span>
+              <div className="w-3 h-3 rounded-full bg-red-500 flex-shrink-0" />
+              <span className="text-slate-300 truncate">151-200 Unhealthy</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-purple-500" />
-              <span className="text-slate-300">201-300 Very Unhealthy</span>
+              <div className="w-3 h-3 rounded-full bg-purple-500 flex-shrink-0" />
+              <span className="text-slate-300 truncate">201-300 Very Unhealthy</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-900" />
-              <span className="text-slate-300">300+ Hazardous</span>
-            </div>
-          </div>
-
-          <div className="mt-3 pt-2 border-t border-slate-700">
-            <div className="text-xs text-slate-400 mb-1">Station Types:</div>
-            <div className="grid grid-cols-2 gap-1 text-xs">
-              <div className="flex items-center gap-1">
-                <span>🏛️</span>
-                <span className="text-slate-300">Government</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span>🏭</span>
-                <span className="text-slate-300">Industrial</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span>🏠</span>
-                <span className="text-slate-300">Residential</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span>🚗</span>
-                <span className="text-slate-300">Traffic</span>
-              </div>
+              <div className="w-3 h-3 rounded-full bg-red-900 flex-shrink-0" />
+              <span className="text-slate-300 truncate">300+ Hazardous</span>
             </div>
           </div>
         </Card>
