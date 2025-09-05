@@ -9,8 +9,6 @@ import { Slider } from "@/components/ui/slider"
 import {
   LineChart,
   Line,
-  AreaChart,
-  Area,
   BarChart,
   Bar,
   XAxis,
@@ -361,53 +359,53 @@ export function DataChartsSection() {
                       className="h-[300px]"
                     >
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={cityTrendsData.slice(0, timeControl[0] + 1)}>
+                        <LineChart data={cityTrendsData.slice(0, timeControl[0] + 1)}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                           <XAxis dataKey="time" stroke="#9ca3af" />
                           <YAxis stroke="#9ca3af" />
                           <ChartTooltip content={<ChartTooltipContent />} />
                           <Legend />
-                          <Area
+                          <Line
                             type="monotone"
                             dataKey="Delhi"
-                            stackId="1"
                             stroke="#ef4444"
-                            fill="#ef4444"
-                            fillOpacity={0.6}
+                            strokeWidth={3}
+                            dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, stroke: "#ef4444", strokeWidth: 2 }}
                           />
-                          <Area
+                          <Line
                             type="monotone"
                             dataKey="Mumbai"
-                            stackId="2"
                             stroke="#f97316"
-                            fill="#f97316"
-                            fillOpacity={0.6}
+                            strokeWidth={3}
+                            dot={{ fill: "#f97316", strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, stroke: "#f97316", strokeWidth: 2 }}
                           />
-                          <Area
+                          <Line
                             type="monotone"
                             dataKey="Bangalore"
-                            stackId="3"
                             stroke="#eab308"
-                            fill="#eab308"
-                            fillOpacity={0.6}
+                            strokeWidth={3}
+                            dot={{ fill: "#eab308", strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, stroke: "#eab308", strokeWidth: 2 }}
                           />
-                          <Area
+                          <Line
                             type="monotone"
                             dataKey="Chennai"
-                            stackId="4"
                             stroke="#22c55e"
-                            fill="#22c55e"
-                            fillOpacity={0.6}
+                            strokeWidth={3}
+                            dot={{ fill: "#22c55e", strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, stroke: "#22c55e", strokeWidth: 2 }}
                           />
-                          <Area
+                          <Line
                             type="monotone"
                             dataKey="Kolkata"
-                            stackId="5"
                             stroke="#8b5cf6"
-                            fill="#8b5cf6"
-                            fillOpacity={0.6}
+                            strokeWidth={3}
+                            dot={{ fill: "#8b5cf6", strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, stroke: "#8b5cf6", strokeWidth: 2 }}
                           />
-                        </AreaChart>
+                        </LineChart>
                       </ResponsiveContainer>
                     </ChartContainer>
                   </CardContent>
