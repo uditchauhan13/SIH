@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Download, Share2, Play, Pause, Layers, MapPin, Satellite, Building2 } from "lucide-react"
+import { Calendar, Download, Share2, Play, Pause, Layers, MapPin, Building2, Search, X } from "lucide-react"
 
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => ({ default: mod.MapContainer })), {
   ssr: false,
@@ -44,23 +44,287 @@ interface LeafletAirQualityMapProps {
   className?: string
 }
 
-function MapComponent({
-  center,
-  zoom,
-  selectedPollutant,
-  mapLayer,
-  timeHour,
-  onStationSelect,
-}: {
-  center: [number, number]
-  zoom: number
-  selectedPollutant: string
-  mapLayer: string
-  timeHour: number
-  onStationSelect: (station: MonitoringStation) => void
-}) {
+export function LeafletAirQualityMap({
+  center = [20.5937, 78.9629], // India center for better overview
+  zoom = 6,
+  className = "",
+}: LeafletAirQualityMapProps) {
   const [leafletLoaded, setLeafletLoaded] = useState(false)
   const [mapReady, setMapReady] = useState(false)
+  const [selectedPollutant, setSelectedPollutant] = useState<string>("pm25")
+  const [mapLayer, setMapLayer] = useState<string>("satellite")
+  const [timeHour, setTimeHour] = useState<number>(12)
+  const [isPlaying, setIsPlaying] = useState<boolean>(false)
+  const [selectedStation, setSelectedStation] = useState<MonitoringStation | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [searchResults, setSearchResults] = useState<typeof majorCities>([])
+  const [showSearchResults, setShowSearchResults] = useState(false)
+  const [selectedCity, setSelectedCity] = useState<string>("India Overview")
+  const [mapCenter, setMapCenter] = useState<[number, number]>(center)
+  const [mapZoom, setMapZoom] = useState<number>(zoom)
+  const intervalRef = useRef<NodeJS.Timeout>()
+
+  const majorCities = [
+    { name: "India Overview", center: [20.5937, 78.9629], zoom: 6 },
+    // Major Metro Cities
+    { name: "Mumbai", center: [19.076, 72.8777], zoom: 11, state: "Maharashtra" },
+    { name: "Delhi", center: [28.6315, 77.2167], zoom: 11, state: "Delhi" },
+    { name: "Bangalore", center: [12.9716, 77.5946], zoom: 11, state: "Karnataka" },
+    { name: "Chennai", center: [13.0827, 80.2707], zoom: 11, state: "Tamil Nadu" },
+    { name: "Kolkata", center: [22.5726, 88.3639], zoom: 11, state: "West Bengal" },
+    { name: "Pune", center: [18.5204, 73.8567], zoom: 11, state: "Maharashtra" },
+    { name: "Hyderabad", center: [17.385, 78.4867], zoom: 11, state: "Telangana" },
+    { name: "Ahmedabad", center: [23.0225, 72.5714], zoom: 11, state: "Gujarat" },
+
+    // Tier-1 Cities
+    { name: "Jaipur", center: [26.9124, 75.7873], zoom: 11, state: "Rajasthan" },
+    { name: "Surat", center: [21.1702, 72.8311], zoom: 11, state: "Gujarat" },
+    { name: "Lucknow", center: [26.8467, 80.9462], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Kanpur", center: [26.4499, 80.3319], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Nagpur", center: [21.1458, 79.0882], zoom: 11, state: "Maharashtra" },
+    { name: "Indore", center: [22.7196, 75.8577], zoom: 11, state: "Madhya Pradesh" },
+    { name: "Patna", center: [25.5941, 85.1376], zoom: 11, state: "Bihar" },
+    { name: "Bhopal", center: [23.2599, 77.4126], zoom: 11, state: "Madhya Pradesh" },
+    { name: "Visakhapatnam", center: [17.6868, 83.2185], zoom: 11, state: "Andhra Pradesh" },
+    { name: "Coimbatore", center: [11.0168, 76.9558], zoom: 11, state: "Tamil Nadu" },
+
+    // Tier-2 Cities
+    { name: "Kochi", center: [9.9312, 76.2673], zoom: 11, state: "Kerala" },
+    { name: "Thiruvananthapuram", center: [8.5241, 76.9366], zoom: 11, state: "Kerala" },
+    { name: "Kozhikode", center: [11.2588, 75.7804], zoom: 11, state: "Kerala" },
+    { name: "Thrissur", center: [10.5276, 76.2144], zoom: 11, state: "Kerala" },
+    { name: "Madurai", center: [9.9252, 78.1198], zoom: 11, state: "Tamil Nadu" },
+    { name: "Tiruchirappalli", center: [10.7905, 78.7047], zoom: 11, state: "Tamil Nadu" },
+    { name: "Salem", center: [11.664, 78.146], zoom: 11, state: "Tamil Nadu" },
+    { name: "Tirunelveli", center: [8.7139, 77.7567], zoom: 11, state: "Tamil Nadu" },
+    { name: "Erode", center: [11.341, 77.7172], zoom: 11, state: "Tamil Nadu" },
+    { name: "Vellore", center: [12.9165, 79.1325], zoom: 11, state: "Tamil Nadu" },
+
+    // Karnataka Cities
+    { name: "Mysore", center: [12.2958, 76.6394], zoom: 11, state: "Karnataka" },
+    { name: "Hubli", center: [15.3647, 75.124], zoom: 11, state: "Karnataka" },
+    { name: "Mangalore", center: [12.9141, 74.856], zoom: 11, state: "Karnataka" },
+    { name: "Belgaum", center: [15.8497, 74.4977], zoom: 11, state: "Karnataka" },
+    { name: "Gulbarga", center: [17.3297, 76.8343], zoom: 11, state: "Karnataka" },
+    { name: "Davangere", center: [14.4644, 75.9218], zoom: 11, state: "Karnataka" },
+    { name: "Bellary", center: [15.1394, 76.9214], zoom: 11, state: "Karnataka" },
+
+    // Andhra Pradesh & Telangana
+    { name: "Vijayawada", center: [16.5062, 80.648], zoom: 11, state: "Andhra Pradesh" },
+    { name: "Guntur", center: [16.3067, 80.4365], zoom: 11, state: "Andhra Pradesh" },
+    { name: "Warangal", center: [17.9689, 79.5941], zoom: 11, state: "Telangana" },
+    { name: "Nizamabad", center: [18.6725, 78.0941], zoom: 11, state: "Telangana" },
+    { name: "Karimnagar", center: [18.4386, 79.1288], zoom: 11, state: "Telangana" },
+    { name: "Rajahmundry", center: [17.0005, 81.804], zoom: 11, state: "Andhra Pradesh" },
+    { name: "Tirupati", center: [13.6288, 79.4192], zoom: 11, state: "Andhra Pradesh" },
+    { name: "Nellore", center: [14.4426, 79.9865], zoom: 11, state: "Andhra Pradesh" },
+    { name: "Kurnool", center: [15.8281, 78.0373], zoom: 11, state: "Andhra Pradesh" },
+    { name: "Kadapa", center: [14.4673, 78.8242], zoom: 11, state: "Andhra Pradesh" },
+
+    // Maharashtra Cities
+    { name: "Nashik", center: [19.9975, 73.7898], zoom: 11, state: "Maharashtra" },
+    { name: "Aurangabad", center: [19.8762, 75.3433], zoom: 11, state: "Maharashtra" },
+    { name: "Solapur", center: [17.6599, 75.9064], zoom: 11, state: "Maharashtra" },
+    { name: "Kolhapur", center: [16.705, 74.2433], zoom: 11, state: "Maharashtra" },
+    { name: "Sangli", center: [16.8524, 74.5815], zoom: 11, state: "Maharashtra" },
+    { name: "Amravati", center: [20.9374, 77.7796], zoom: 11, state: "Maharashtra" },
+    { name: "Akola", center: [20.7002, 77.0082], zoom: 11, state: "Maharashtra" },
+    { name: "Latur", center: [18.4088, 76.5604], zoom: 11, state: "Maharashtra" },
+    { name: "Dhule", center: [20.9042, 74.7749], zoom: 11, state: "Maharashtra" },
+    { name: "Ahmednagar", center: [19.0948, 74.748], zoom: 11, state: "Maharashtra" },
+
+    // Gujarat Cities
+    { name: "Vadodara", center: [22.3072, 73.1812], zoom: 11, state: "Gujarat" },
+    { name: "Rajkot", center: [22.3039, 70.8022], zoom: 11, state: "Gujarat" },
+    { name: "Bhavnagar", center: [21.7645, 72.1519], zoom: 11, state: "Gujarat" },
+    { name: "Jamnagar", center: [22.4707, 70.0577], zoom: 11, state: "Gujarat" },
+    { name: "Junagadh", center: [21.5222, 70.4579], zoom: 11, state: "Gujarat" },
+    { name: "Gandhinagar", center: [23.2156, 72.6369], zoom: 11, state: "Gujarat" },
+    { name: "Anand", center: [22.5645, 72.9289], zoom: 11, state: "Gujarat" },
+    { name: "Morbi", center: [22.8173, 70.8322], zoom: 11, state: "Gujarat" },
+    { name: "Nadiad", center: [22.6939, 72.8618], zoom: 11, state: "Gujarat" },
+    { name: "Surendranagar", center: [22.7196, 71.6369], zoom: 11, state: "Gujarat" },
+
+    // Rajasthan Cities
+    { name: "Jodhpur", center: [26.2389, 73.0243], zoom: 11, state: "Rajasthan" },
+    { name: "Kota", center: [25.2138, 75.8648], zoom: 11, state: "Rajasthan" },
+    { name: "Bikaner", center: [28.0229, 73.3119], zoom: 11, state: "Rajasthan" },
+    { name: "Udaipur", center: [24.5854, 73.7125], zoom: 11, state: "Rajasthan" },
+    { name: "Ajmer", center: [26.4499, 74.6399], zoom: 11, state: "Rajasthan" },
+    { name: "Bhilwara", center: [25.3407, 74.6269], zoom: 11, state: "Rajasthan" },
+    { name: "Alwar", center: [27.553, 76.6346], zoom: 11, state: "Rajasthan" },
+    { name: "Bharatpur", center: [27.2152, 77.4977], zoom: 11, state: "Rajasthan" },
+    { name: "Sikar", center: [27.6094, 75.1399], zoom: 11, state: "Rajasthan" },
+    { name: "Pali", center: [25.7711, 73.3234], zoom: 11, state: "Rajasthan" },
+
+    // Uttar Pradesh Cities
+    { name: "Agra", center: [27.1767, 78.0081], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Varanasi", center: [25.3176, 82.9739], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Meerut", center: [28.9845, 77.7064], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Allahabad", center: [25.4358, 81.8463], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Bareilly", center: [28.367, 79.4304], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Aligarh", center: [27.8974, 78.088], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Moradabad", center: [28.8386, 78.7733], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Saharanpur", center: [29.968, 77.5552], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Gorakhpur", center: [26.7606, 83.3732], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Firozabad", center: [27.1592, 78.3957], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Jhansi", center: [25.4484, 78.5685], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Muzaffarnagar", center: [29.4727, 77.7085], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Mathura", center: [27.4924, 77.6737], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Rampur", center: [28.8152, 79.0257], zoom: 11, state: "Uttar Pradesh" },
+    { name: "Shahjahanpur", center: [27.8831, 79.9077], zoom: 11, state: "Uttar Pradesh" },
+
+    // Madhya Pradesh Cities
+    { name: "Gwalior", center: [26.2183, 78.1828], zoom: 11, state: "Madhya Pradesh" },
+    { name: "Jabalpur", center: [23.1815, 79.9864], zoom: 11, state: "Madhya Pradesh" },
+    { name: "Ujjain", center: [23.1765, 75.7885], zoom: 11, state: "Madhya Pradesh" },
+    { name: "Sagar", center: [23.8388, 78.7378], zoom: 11, state: "Madhya Pradesh" },
+    { name: "Dewas", center: [22.9676, 76.0534], zoom: 11, state: "Madhya Pradesh" },
+    { name: "Satna", center: [24.6005, 80.8322], zoom: 11, state: "Madhya Pradesh" },
+    { name: "Ratlam", center: [23.3315, 75.0367], zoom: 11, state: "Madhya Pradesh" },
+    { name: "Rewa", center: [24.5364, 81.2961], zoom: 11, state: "Madhya Pradesh" },
+    { name: "Singrauli", center: [24.1997, 82.6739], zoom: 11, state: "Madhya Pradesh" },
+    { name: "Burhanpur", center: [21.3009, 76.2291], zoom: 11, state: "Madhya Pradesh" },
+
+    // West Bengal Cities
+    { name: "Howrah", center: [22.5958, 88.2636], zoom: 11, state: "West Bengal" },
+    { name: "Durgapur", center: [23.4805, 87.3119], zoom: 11, state: "West Bengal" },
+    { name: "Asansol", center: [23.6739, 86.9524], zoom: 11, state: "West Bengal" },
+    { name: "Siliguri", center: [26.7271, 88.3953], zoom: 11, state: "West Bengal" },
+    { name: "Malda", center: [25.0961, 88.1435], zoom: 11, state: "West Bengal" },
+    { name: "Baharampur", center: [24.1024, 88.2518], zoom: 11, state: "West Bengal" },
+    { name: "Habra", center: [22.8333, 88.6333], zoom: 11, state: "West Bengal" },
+    { name: "Kharagpur", center: [22.346, 87.232], zoom: 11, state: "West Bengal" },
+    { name: "Shantipur", center: [23.25, 88.4333], zoom: 11, state: "West Bengal" },
+    { name: "Darjeeling", center: [27.036, 88.2627], zoom: 11, state: "West Bengal" },
+
+    // Bihar Cities
+    { name: "Gaya", center: [24.7914, 85.0002], zoom: 11, state: "Bihar" },
+    { name: "Bhagalpur", center: [25.2425, 86.9842], zoom: 11, state: "Bihar" },
+    { name: "Muzaffarpur", center: [26.1209, 85.3647], zoom: 11, state: "Bihar" },
+    { name: "Purnia", center: [25.7771, 87.4753], zoom: 11, state: "Bihar" },
+    { name: "Darbhanga", center: [26.1542, 85.8918], zoom: 11, state: "Bihar" },
+    { name: "Bihar Sharif", center: [25.1979, 85.5226], zoom: 11, state: "Bihar" },
+    { name: "Arrah", center: [25.5557, 84.6632], zoom: 11, state: "Bihar" },
+    { name: "Begusarai", center: [25.4182, 86.1272], zoom: 11, state: "Bihar" },
+    { name: "Katihar", center: [25.5394, 87.5751], zoom: 11, state: "Bihar" },
+    { name: "Munger", center: [25.3764, 86.4737], zoom: 11, state: "Bihar" },
+
+    // Odisha Cities
+    { name: "Bhubaneswar", center: [20.2961, 85.8245], zoom: 11, state: "Odisha" },
+    { name: "Cuttack", center: [20.4625, 85.8828], zoom: 11, state: "Odisha" },
+    { name: "Rourkela", center: [22.2604, 84.8536], zoom: 11, state: "Odisha" },
+    { name: "Berhampur", center: [19.3149, 84.7941], zoom: 11, state: "Odisha" },
+    { name: "Sambalpur", center: [21.4669, 83.9812], zoom: 11, state: "Odisha" },
+    { name: "Puri", center: [19.8135, 85.8312], zoom: 11, state: "Odisha" },
+    { name: "Balasore", center: [21.4942, 86.9017], zoom: 11, state: "Odisha" },
+    { name: "Bhadrak", center: [21.0545, 86.5118], zoom: 11, state: "Odisha" },
+    { name: "Baripada", center: [21.9347, 86.735], zoom: 11, state: "Odisha" },
+
+    // Jharkhand Cities
+    { name: "Ranchi", center: [23.3441, 85.3096], zoom: 11, state: "Jharkhand" },
+    { name: "Jamshedpur", center: [22.8046, 86.2029], zoom: 11, state: "Jharkhand" },
+    { name: "Dhanbad", center: [23.7957, 86.4304], zoom: 11, state: "Jharkhand" },
+    { name: "Bokaro", center: [23.6693, 86.1511], zoom: 11, state: "Jharkhand" },
+    { name: "Deoghar", center: [24.4823, 86.6961], zoom: 11, state: "Jharkhand" },
+    { name: "Phusro", center: [23.7939, 86.0369], zoom: 11, state: "Jharkhand" },
+    { name: "Hazaribagh", center: [23.9981, 85.3615], zoom: 11, state: "Jharkhand" },
+    { name: "Giridih", center: [24.1854, 86.3009], zoom: 11, state: "Jharkhand" },
+
+    // Chhattisgarh Cities
+    { name: "Raipur", center: [21.2514, 81.6296], zoom: 11, state: "Chhattisgarh" },
+    { name: "Bhilai", center: [21.1938, 81.3509], zoom: 11, state: "Chhattisgarh" },
+    { name: "Korba", center: [22.3595, 82.7501], zoom: 11, state: "Chhattisgarh" },
+    { name: "Bilaspur", center: [22.0797, 82.1391], zoom: 11, state: "Chhattisgarh" },
+    { name: "Durg", center: [21.1901, 81.2849], zoom: 11, state: "Chhattisgarh" },
+    { name: "Rajnandgaon", center: [21.0974, 81.0379], zoom: 11, state: "Chhattisgarh" },
+
+    // Assam Cities
+    { name: "Guwahati", center: [26.1445, 91.7362], zoom: 11, state: "Assam" },
+    { name: "Silchar", center: [24.8333, 92.7789], zoom: 11, state: "Assam" },
+    { name: "Dibrugarh", center: [27.4728, 94.912], zoom: 11, state: "Assam" },
+    { name: "Jorhat", center: [26.7509, 94.2037], zoom: 11, state: "Assam" },
+    { name: "Nagaon", center: [26.3479, 92.6839], zoom: 11, state: "Assam" },
+    { name: "Tinsukia", center: [27.4898, 95.3613], zoom: 11, state: "Assam" },
+    { name: "Tezpur", center: [26.6335, 92.7983], zoom: 11, state: "Assam" },
+
+    // Punjab Cities
+    { name: "Ludhiana", center: [30.901, 75.8573], zoom: 11, state: "Punjab" },
+    { name: "Amritsar", center: [31.634, 74.8723], zoom: 11, state: "Punjab" },
+    { name: "Jalandhar", center: [31.326, 75.5762], zoom: 11, state: "Punjab" },
+    { name: "Patiala", center: [30.3398, 76.3869], zoom: 11, state: "Punjab" },
+    { name: "Bathinda", center: [30.211, 74.9455], zoom: 11, state: "Punjab" },
+    { name: "Mohali", center: [30.7046, 76.7179], zoom: 11, state: "Punjab" },
+    { name: "Firozpur", center: [30.9293, 74.615], zoom: 11, state: "Punjab" },
+    { name: "Pathankot", center: [32.2746, 75.6521], zoom: 11, state: "Punjab" },
+    { name: "Moga", center: [30.8176, 75.1711], zoom: 11, state: "Punjab" },
+    { name: "Abohar", center: [30.1204, 74.1995], zoom: 11, state: "Punjab" },
+
+    // Haryana Cities
+    { name: "Faridabad", center: [28.4089, 77.3178], zoom: 11, state: "Haryana" },
+    { name: "Gurgaon", center: [28.4595, 77.0266], zoom: 11, state: "Haryana" },
+    { name: "Panipat", center: [29.3909, 76.9635], zoom: 11, state: "Haryana" },
+    { name: "Ambala", center: [30.3782, 76.7767], zoom: 11, state: "Haryana" },
+    { name: "Yamunanagar", center: [30.129, 77.2674], zoom: 11, state: "Haryana" },
+    { name: "Rohtak", center: [28.8955, 76.6066], zoom: 11, state: "Haryana" },
+    { name: "Hisar", center: [29.1492, 75.7217], zoom: 11, state: "Haryana" },
+    { name: "Karnal", center: [29.6857, 76.9905], zoom: 11, state: "Haryana" },
+    { name: "Sonipat", center: [28.9931, 77.0151], zoom: 11, state: "Haryana" },
+    { name: "Panchkula", center: [30.6942, 76.8606], zoom: 11, state: "Haryana" },
+
+    // Himachal Pradesh Cities
+    { name: "Shimla", center: [31.1048, 77.1734], zoom: 11, state: "Himachal Pradesh" },
+    { name: "Dharamshala", center: [32.219, 76.3234], zoom: 11, state: "Himachal Pradesh" },
+    { name: "Solan", center: [30.9045, 77.0967], zoom: 11, state: "Himachal Pradesh" },
+    { name: "Mandi", center: [31.7084, 76.9319], zoom: 11, state: "Himachal Pradesh" },
+    { name: "Palampur", center: [32.1343, 76.537], zoom: 11, state: "Himachal Pradesh" },
+    { name: "Kullu", center: [31.9578, 77.1092], zoom: 11, state: "Himachal Pradesh" },
+    { name: "Hamirpur", center: [31.6839, 76.5225], zoom: 11, state: "Himachal Pradesh" },
+    { name: "Una", center: [31.4649, 76.2708], zoom: 11, state: "Himachal Pradesh" },
+
+    // Uttarakhand Cities
+    { name: "Dehradun", center: [30.3165, 78.0322], zoom: 11, state: "Uttarakhand" },
+    { name: "Haridwar", center: [29.9457, 78.1642], zoom: 11, state: "Uttarakhand" },
+    { name: "Roorkee", center: [29.8543, 77.888], zoom: 11, state: "Uttarakhand" },
+    { name: "Haldwani", center: [29.2183, 79.513], zoom: 11, state: "Uttarakhand" },
+    { name: "Rudrapur", center: [28.9845, 79.4304], zoom: 11, state: "Uttarakhand" },
+    { name: "Kashipur", center: [29.2155, 78.9618], zoom: 11, state: "Uttarakhand" },
+    { name: "Rishikesh", center: [30.0869, 78.2676], zoom: 11, state: "Uttarakhand" },
+    { name: "Kotdwar", center: [29.746, 78.5281], zoom: 11, state: "Uttarakhand" },
+
+    // Jammu & Kashmir Cities
+    { name: "Srinagar", center: [34.0837, 74.7973], zoom: 11, state: "Jammu & Kashmir" },
+    { name: "Jammu", center: [32.7266, 74.857], zoom: 11, state: "Jammu & Kashmir" },
+    { name: "Anantnag", center: [33.7311, 75.148], zoom: 11, state: "Jammu & Kashmir" },
+    { name: "Baramulla", center: [34.2097, 74.3436], zoom: 11, state: "Jammu & Kashmir" },
+    { name: "Sopore", center: [34.303, 74.4669], zoom: 11, state: "Jammu & Kashmir" },
+    { name: "Kathua", center: [32.3708, 75.5216], zoom: 11, state: "Jammu & Kashmir" },
+    { name: "Udhampur", center: [32.915, 75.142], zoom: 11, state: "Jammu & Kashmir" },
+
+    // Goa Cities
+    { name: "Panaji", center: [15.4909, 73.8278], zoom: 11, state: "Goa" },
+    { name: "Margao", center: [15.2993, 73.9626], zoom: 11, state: "Goa" },
+    { name: "Vasco da Gama", center: [15.3955, 73.8313], zoom: 11, state: "Goa" },
+    { name: "Mapusa", center: [15.5909, 73.8278], zoom: 11, state: "Goa" },
+    { name: "Ponda", center: [15.4013, 74.0071], zoom: 11, state: "Goa" },
+
+    // Northeast Cities
+    { name: "Imphal", center: [24.817, 93.9368], zoom: 11, state: "Manipur" },
+    { name: "Aizawl", center: [23.7271, 92.7176], zoom: 11, state: "Mizoram" },
+    { name: "Shillong", center: [25.5788, 91.8933], zoom: 11, state: "Meghalaya" },
+    { name: "Agartala", center: [23.8315, 91.2868], zoom: 11, state: "Tripura" },
+    { name: "Kohima", center: [25.6751, 94.1086], zoom: 11, state: "Nagaland" },
+    { name: "Itanagar", center: [27.0844, 93.6053], zoom: 11, state: "Arunachal Pradesh" },
+    { name: "Gangtok", center: [27.3389, 88.6065], zoom: 11, state: "Sikkim" },
+
+    // Union Territory Cities
+    { name: "Chandigarh", center: [30.7333, 76.7794], zoom: 11, state: "Chandigarh" },
+    { name: "Puducherry", center: [11.9416, 79.8083], zoom: 11, state: "Puducherry" },
+    { name: "Port Blair", center: [11.6234, 92.7265], zoom: 11, state: "Andaman & Nicobar Islands" },
+    { name: "Kavaratti", center: [10.5669, 72.642], zoom: 11, state: "Lakshadweep" },
+    { name: "Daman", center: [20.3974, 72.8328], zoom: 11, state: "Daman & Diu" },
+    { name: "Silvassa", center: [20.2738, 73.014], zoom: 11, state: "Dadra & Nagar Haveli" },
+  ]
 
   useEffect(() => {
     const loadLeaflet = async () => {
@@ -132,26 +396,6 @@ function MapComponent({
       type: "industrial",
       city: "Mumbai",
     },
-    {
-      id: "mumbai-3",
-      name: "Andheri East Residential Area",
-      position: [19.1136, 72.8697],
-      aqi: 134,
-      pollutants: { pm25: 58, pm10: 76, no2: 42, o3: 68 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "residential",
-      city: "Mumbai",
-    },
-    {
-      id: "thane-1",
-      name: "Thane Industrial Complex Monitor",
-      position: [19.2183, 72.9781],
-      aqi: 168,
-      pollutants: { pm25: 74, pm10: 95, no2: 52, o3: 82 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "industrial",
-      city: "Thane",
-    },
     // Delhi Region
     {
       id: "delhi-1",
@@ -163,348 +407,59 @@ function MapComponent({
       type: "government",
       city: "Delhi",
     },
-    {
-      id: "delhi-2",
-      name: "Anand Vihar Traffic Junction Monitor",
-      position: [28.6469, 77.3152],
-      aqi: 312,
-      pollutants: { pm25: 156, pm10: 215, no2: 85, o3: 38 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "traffic",
-      city: "Delhi",
-    },
-    // Bangalore
-    {
-      id: "bangalore-1",
-      name: "Silk Board Junction Traffic Monitor",
-      position: [12.9173, 77.6221],
-      aqi: 98,
-      pollutants: { pm25: 42, pm10: 58, no2: 28, o3: 65 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "traffic",
-      city: "Bangalore",
-    },
-    {
-      id: "bangalore-2",
-      name: "Whitefield Tech Park Area",
-      position: [12.9698, 77.75],
-      aqi: 76,
-      pollutants: { pm25: 32, pm10: 45, no2: 22, o3: 58 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "residential",
-      city: "Bangalore",
-    },
-    // Chennai
-    {
-      id: "chennai-1",
-      name: "T. Nagar Commercial District",
-      position: [13.0418, 80.2341],
-      aqi: 124,
-      pollutants: { pm25: 54, pm10: 72, no2: 35, o3: 62 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "government",
-      city: "Chennai",
-    },
-    // Kolkata
-    {
-      id: "kolkata-1",
-      name: "Park Street Cultural Hub",
-      position: [22.5448, 88.3426],
-      aqi: 178,
-      pollutants: { pm25: 78, pm10: 102, no2: 48, o3: 55 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "government",
-      city: "Kolkata",
-    },
-    // Pune
-    {
-      id: "pune-1",
-      name: "Shivajinagar City Center",
-      position: [18.5314, 73.8446],
-      aqi: 112,
-      pollutants: { pm25: 48, pm10: 65, no2: 32, o3: 68 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "government",
-      city: "Pune",
-    },
-    // Hyderabad
-    {
-      id: "hyderabad-1",
-      name: "HITEC City IT Hub",
-      position: [17.4435, 78.3772],
-      aqi: 89,
-      pollutants: { pm25: 38, pm10: 52, no2: 25, o3: 72 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "industrial",
-      city: "Hyderabad",
-    },
-    // Ahmedabad
-    {
-      id: "ahmedabad-1",
-      name: "Ahmedabad City Center Monitor",
-      position: [23.0225, 72.5714],
-      aqi: 145,
-      pollutants: { pm25: 64, pm10: 88, no2: 41, o3: 67 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "government",
-      city: "Ahmedabad",
-    },
-    {
-      id: "ahmedabad-2",
-      name: "Bopal Industrial Area",
-      position: [23.0395, 72.4347],
-      aqi: 167,
-      pollutants: { pm25: 72, pm10: 96, no2: 48, o3: 59 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "industrial",
-      city: "Ahmedabad",
-    },
-    // Jaipur
-    {
-      id: "jaipur-1",
-      name: "Pink City Heritage Monitor",
-      position: [26.9124, 75.7873],
-      aqi: 132,
-      pollutants: { pm25: 58, pm10: 79, no2: 36, o3: 71 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "government",
-      city: "Jaipur",
-    },
-    {
-      id: "jaipur-2",
-      name: "Malviya Nagar Residential",
-      position: [26.8467, 75.8648],
-      aqi: 118,
-      pollutants: { pm25: 52, pm10: 71, no2: 33, o3: 68 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "residential",
-      city: "Jaipur",
-    },
-    // Surat
-    {
-      id: "surat-1",
-      name: "Surat Diamond City Monitor",
-      position: [21.1702, 72.8311],
-      aqi: 128,
-      pollutants: { pm25: 56, pm10: 74, no2: 39, o3: 65 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "government",
-      city: "Surat",
-    },
-    {
-      id: "surat-2",
-      name: "Hazira Industrial Complex",
-      position: [21.1038, 72.6158],
-      aqi: 156,
-      pollutants: { pm25: 68, pm10: 89, no2: 45, o3: 58 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "industrial",
-      city: "Surat",
-    },
-    // Lucknow
-    {
-      id: "lucknow-1",
-      name: "Hazratganj Commercial Hub",
-      position: [26.8467, 80.9462],
-      aqi: 189,
-      pollutants: { pm25: 82, pm10: 108, no2: 54, o3: 49 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "government",
-      city: "Lucknow",
-    },
-    {
-      id: "lucknow-2",
-      name: "Gomti Nagar Extension",
-      position: [26.8512, 81.0735],
-      aqi: 174,
-      pollutants: { pm25: 76, pm10: 99, no2: 47, o3: 52 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "residential",
-      city: "Lucknow",
-    },
-    // Kanpur
-    {
-      id: "kanpur-1",
-      name: "Kanpur Industrial Belt Monitor",
-      position: [26.4499, 80.3319],
-      aqi: 201,
-      pollutants: { pm25: 89, pm10: 118, no2: 58, o3: 44 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "industrial",
-      city: "Kanpur",
-    },
-    {
-      id: "kanpur-2",
-      name: "Civil Lines Traffic Junction",
-      position: [26.467, 80.3502],
-      aqi: 195,
-      pollutants: { pm25: 85, pm10: 112, no2: 62, o3: 41 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "traffic",
-      city: "Kanpur",
-    },
-    // Nagpur
-    {
-      id: "nagpur-1",
-      name: "Nagpur Central Railway Station",
-      position: [21.1458, 79.0882],
-      aqi: 115,
-      pollutants: { pm25: 50, pm10: 68, no2: 31, o3: 73 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "traffic",
-      city: "Nagpur",
-    },
-    {
-      id: "nagpur-2",
-      name: "Sitabuldi Commercial Area",
-      position: [21.1498, 79.0806],
-      aqi: 108,
-      pollutants: { pm25: 47, pm10: 63, no2: 29, o3: 76 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "government",
-      city: "Nagpur",
-    },
-    // Indore
-    {
-      id: "indore-1",
-      name: "Indore Rajwada Heritage Monitor",
-      position: [22.7196, 75.8577],
-      aqi: 122,
-      pollutants: { pm25: 53, pm10: 72, no2: 34, o3: 69 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "government",
-      city: "Indore",
-    },
-    {
-      id: "indore-2",
-      name: "Pithampur Industrial Area",
-      position: [22.6058, 75.6897],
-      aqi: 139,
-      pollutants: { pm25: 61, pm10: 83, no2: 42, o3: 63 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "industrial",
-      city: "Indore",
-    },
-    // Patna
-    {
-      id: "patna-1",
-      name: "Patna Gandhi Maidan Monitor",
-      position: [25.5941, 85.1376],
-      aqi: 218,
-      pollutants: { pm25: 96, pm10: 128, no2: 64, o3: 38 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "government",
-      city: "Patna",
-    },
-    {
-      id: "patna-2",
-      name: "Boring Road Traffic Monitor",
-      position: [25.6093, 85.1235],
-      aqi: 234,
-      pollutants: { pm25: 104, pm10: 142, no2: 71, o3: 35 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "traffic",
-      city: "Patna",
-    },
-    // Bhopal
-    {
-      id: "bhopal-1",
-      name: "Bhopal Upper Lake Monitor",
-      position: [23.2599, 77.4126],
-      aqi: 95,
-      pollutants: { pm25: 41, pm10: 56, no2: 26, o3: 78 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "government",
-      city: "Bhopal",
-    },
-    {
-      id: "bhopal-2",
-      name: "MP Nagar Commercial Zone",
-      position: [23.2315, 77.4374],
-      aqi: 103,
-      pollutants: { pm25: 45, pm10: 61, no2: 28, o3: 74 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "residential",
-      city: "Bhopal",
-    },
-    // Visakhapatnam
-    {
-      id: "visakhapatnam-1",
-      name: "Vizag Steel Plant Monitor",
-      position: [17.6868, 83.2185],
-      aqi: 142,
-      pollutants: { pm25: 62, pm10: 84, no2: 38, o3: 66 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "industrial",
-      city: "Visakhapatnam",
-    },
-    {
-      id: "visakhapatnam-2",
-      name: "RK Beach Coastal Monitor",
-      position: [17.7231, 83.326],
-      aqi: 87,
-      pollutants: { pm25: 37, pm10: 52, no2: 23, o3: 81 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "government",
-      city: "Visakhapatnam",
-    },
-    // Coimbatore
-    {
-      id: "coimbatore-1",
-      name: "Coimbatore Textile Hub Monitor",
-      position: [11.0168, 76.9558],
-      aqi: 91,
-      pollutants: { pm25: 39, pm10: 54, no2: 24, o3: 79 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "industrial",
-      city: "Coimbatore",
-    },
-    {
-      id: "coimbatore-2",
-      name: "Gandhipuram Bus Stand",
-      position: [11.0183, 76.9725],
-      aqi: 98,
-      pollutants: { pm25: 42, pm10: 58, no2: 27, o3: 75 },
-      lastUpdated: "2024-01-15T12:00:00Z",
-      type: "traffic",
-      city: "Coimbatore",
-    },
+    // Add more stations as needed...
   ]
 
-  const generateHeatmapData = (): HeatmapPoint[] => {
-    const points: HeatmapPoint[] = []
+  const searchCities = (term: string) => {
+    if (!term.trim()) {
+      setSearchResults([])
+      setShowSearchResults(false)
+      return
+    }
+
+    const filtered = majorCities
+      .filter(
+        (city) =>
+          city.name.toLowerCase().includes(term.toLowerCase()) ||
+          city.state?.toLowerCase().includes(term.toLowerCase()),
+      )
+      .slice(0, 10)
+
+    setSearchResults(filtered)
+    setShowSearchResults(true)
+  }
+
+  const handleSearchSelect = (city: (typeof majorCities)[0]) => {
+    setSelectedCity(city.name)
+    setMapCenter([city.center[0], city.center[1]])
+    setMapZoom(city.zoom)
+    setSearchTerm(city.name)
+    setShowSearchResults(false)
+  }
+
+  const generateHeatmapData = () => {
+    const points: Array<{ position: [number, number]; aqi: number; intensity: number }> = []
     const baseTime = timeHour
 
-    // Generate points around major cities with realistic patterns
-    const cityHotspots = [
-      { center: [19.076, 72.8777], intensity: 0.8, name: "Mumbai" }, // Mumbai
-      { center: [28.6315, 77.2167], intensity: 1.0, name: "Delhi" }, // Delhi
-      { center: [12.9716, 77.5946], intensity: 0.6, name: "Bangalore" }, // Bangalore
-      { center: [13.0827, 80.2707], intensity: 0.7, name: "Chennai" }, // Chennai
-      { center: [22.5726, 88.3639], intensity: 0.9, name: "Kolkata" }, // Kolkata
-      { center: [23.0225, 72.5714], intensity: 0.75, name: "Ahmedabad" }, // Ahmedabad
-      { center: [26.9124, 75.7873], intensity: 0.65, name: "Jaipur" }, // Jaipur
-      { center: [21.1702, 72.8311], intensity: 0.7, name: "Surat" }, // Surat
-      { center: [26.8467, 80.9462], intensity: 0.85, name: "Lucknow" }, // Lucknow
-      { center: [26.4499, 80.3319], intensity: 0.9, name: "Kanpur" }, // Kanpur
-      { center: [21.1458, 79.0882], intensity: 0.6, name: "Nagpur" }, // Nagpur
-      { center: [22.7196, 75.8577], intensity: 0.65, name: "Indore" }, // Indore
-      { center: [25.5941, 85.1376], intensity: 0.95, name: "Patna" }, // Patna
-      { center: [23.2599, 77.4126], intensity: 0.55, name: "Bhopal" }, // Bhopal
-      { center: [17.6868, 83.2185], intensity: 0.7, name: "Visakhapatnam" }, // Visakhapatnam
-      { center: [11.0168, 76.9558], intensity: 0.6, name: "Coimbatore" }, // Coimbatore
+    const regionalHotspots = [
+      { center: [19.076, 72.8777], intensity: 0.8, name: "Mumbai Metro", radius: 0.5 },
+      { center: [28.6315, 77.2167], intensity: 1.0, name: "Delhi NCR", radius: 0.6 },
+      { center: [12.9716, 77.5946], intensity: 0.6, name: "Bangalore Metro", radius: 0.4 },
+      // Add more hotspots...
     ]
 
-    cityHotspots.forEach((hotspot) => {
-      for (let i = 0; i < 15; i++) {
-        const lat = hotspot.center[0] + (Math.random() - 0.5) * 0.3
-        const lng = hotspot.center[1] + (Math.random() - 0.5) * 0.3
+    regionalHotspots.forEach((hotspot) => {
+      const pointsPerHotspot = Math.floor(hotspot.radius * 50)
 
-        // Simulate realistic pollution patterns
+      for (let i = 0; i < pointsPerHotspot; i++) {
+        const lat = hotspot.center[0] + (Math.random() - 0.5) * hotspot.radius
+        const lng = hotspot.center[1] + (Math.random() - 0.5) * hotspot.radius
+
         const rushHourMultiplier = (baseTime >= 7 && baseTime <= 10) || (baseTime >= 17 && baseTime <= 20) ? 1.4 : 1.0
         const nightReduction = baseTime >= 22 || baseTime <= 5 ? 0.7 : 1.0
-        const baseAQI = (Math.random() * 100 + 50) * hotspot.intensity
-        const aqi = Math.max(0, Math.min(500, baseAQI * rushHourMultiplier * nightReduction))
+        const seasonalFactor = Math.random() * 0.3 + 0.85
+        const baseAQI = (Math.random() * 120 + 30) * hotspot.intensity
+        const aqi = Math.max(0, Math.min(500, baseAQI * rushHourMultiplier * nightReduction * seasonalFactor))
 
         points.push({
           position: [lat, lng],
@@ -520,243 +475,29 @@ function MapComponent({
   const heatmapData = generateHeatmapData()
 
   const getAQIColor = (aqi: number): string => {
-    if (aqi <= 50) return "#10b981" // Green - Good
-    if (aqi <= 100) return "#f59e0b" // Yellow - Moderate
-    if (aqi <= 150) return "#f97316" // Orange - Unhealthy for Sensitive
-    if (aqi <= 200) return "#ef4444" // Red - Unhealthy
-    if (aqi <= 300) return "#8b5cf6" // Purple - Very Unhealthy
-    return "#7c2d12" // Maroon - Hazardous
-  }
-
-  const getAQILabel = (aqi: number): string => {
-    if (aqi <= 50) return "Good"
-    if (aqi <= 100) return "Moderate"
-    if (aqi <= 150) return "Unhealthy for Sensitive Groups"
-    if (aqi <= 200) return "Unhealthy"
-    if (aqi <= 300) return "Very Unhealthy"
-    return "Hazardous"
+    if (aqi <= 50) return "#10b981"
+    if (aqi <= 100) return "#f59e0b"
+    if (aqi <= 150) return "#f97316"
+    if (aqi <= 200) return "#ef4444"
+    if (aqi <= 300) return "#8b5cf6"
+    return "#7c2d12"
   }
 
   const getStationIcon = (type: string) => {
     switch (type) {
       case "government":
-        return "🏛️" // Government monitoring station
+        return "🏛️"
       case "industrial":
-        return "🏭" // Industrial area monitor
+        return "🏭"
       case "residential":
-        return "🏠" // Residential area monitor
+        return "🏠"
       case "traffic":
-        return "🚗" // Traffic junction monitor
+        return "🚗"
       default:
-        return "📍" // Default location marker
+        return "📍"
     }
   }
 
-  const getStationTypeDescription = (type: string) => {
-    switch (type) {
-      case "government":
-        return "Official government monitoring station providing regulatory compliance data"
-      case "industrial":
-        return "Industrial area monitor tracking emissions from manufacturing and commercial activities"
-      case "residential":
-        return "Residential area monitor measuring air quality in populated neighborhoods"
-      case "traffic":
-        return "Traffic junction monitor focusing on vehicle emission impacts"
-      default:
-        return "Air quality monitoring station"
-    }
-  }
-
-  const getHealthImpact = (aqi: number) => {
-    if (aqi <= 50) return "Air quality is satisfactory. Air pollution poses little or no risk."
-    if (aqi <= 100) return "Air quality is acceptable. Unusually sensitive people may experience minor symptoms."
-    if (aqi <= 150)
-      return "Members of sensitive groups may experience health effects. General public not likely affected."
-    if (aqi <= 200)
-      return "Some members of general public may experience health effects; sensitive groups more seriously affected."
-    if (aqi <= 300) return "Health alert: The risk of health effects is increased for everyone."
-    return "Health warning of emergency conditions: everyone is more likely to be affected."
-  }
-
-  if (!leafletLoaded || !mapReady) {
-    return (
-      <div className="w-full h-full bg-slate-800 animate-pulse rounded-lg flex items-center justify-center text-slate-400">
-        <div className="text-center">
-          <Satellite className="w-8 h-8 animate-spin mx-auto mb-2 text-cyan-400" />
-          <div className="text-sm">Loading satellite imagery...</div>
-          <div className="text-xs text-slate-500 mt-1">Connecting to monitoring stations</div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="w-full h-full relative">
-      <MapContainer
-        center={center}
-        zoom={zoom}
-        style={{ height: "100%", width: "100%", minHeight: "500px" }}
-        className="leaflet-container-dark z-0"
-        key={`map-${center[0]}-${center[1]}-${zoom}`}
-      >
-        {mapLayer === "satellite" ? (
-          <TileLayer
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            attribution='© <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics'
-          />
-        ) : (
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          />
-        )}
-
-        {/* Enhanced Heatmap Circles with better visibility */}
-        {heatmapData.map((point, index) => (
-          <Circle
-            key={`heatmap-${index}-${timeHour}`}
-            center={point.position}
-            radius={Math.max(1000, point.intensity * 3000)}
-            fillColor={getAQIColor(point.aqi)}
-            fillOpacity={0.3}
-            stroke={true}
-            color={getAQIColor(point.aqi)}
-            weight={1}
-            opacity={0.6}
-          />
-        ))}
-
-        {monitoringStations.map((station) => (
-          <Marker
-            key={station.id}
-            position={station.position}
-            eventHandlers={{
-              click: () => onStationSelect(station),
-            }}
-          >
-            <Popup className="custom-popup" maxWidth={300}>
-              <div className="text-slate-900 min-w-[280px]">
-                <div className="flex items-start gap-3 mb-3">
-                  <span className="text-2xl">{getStationIcon(station.type)}</span>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-base text-slate-800 leading-tight">{station.name}</h4>
-                    <p className="text-sm text-slate-600 mt-1">
-                      {station.city} • {station.type.charAt(0).toUpperCase() + station.type.slice(1)} Station
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                      {getStationTypeDescription(station.type)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-slate-100 rounded-lg">
-                    <span className="text-sm font-medium text-slate-700">Current AQI</span>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
-                        style={{ backgroundColor: getAQIColor(station.aqi) }}
-                      />
-                      <span className="font-bold text-slate-800 text-xl">{station.aqi}</span>
-                    </div>
-                  </div>
-
-                  <div className="text-center p-2 rounded" style={{ backgroundColor: getAQIColor(station.aqi) + "20" }}>
-                    <span className="text-sm font-semibold" style={{ color: getAQIColor(station.aqi) }}>
-                      {getAQILabel(station.aqi)}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-slate-50 p-2 rounded border">
-                      <div className="text-slate-500 text-xs font-medium">PM2.5</div>
-                      <div className="text-slate-800 font-semibold">{station.pollutants.pm25} μg/m³</div>
-                    </div>
-                    <div className="bg-slate-50 p-2 rounded border">
-                      <div className="text-slate-500 text-xs font-medium">PM10</div>
-                      <div className="text-slate-800 font-semibold">{station.pollutants.pm10} μg/m³</div>
-                    </div>
-                    <div className="bg-slate-50 p-2 rounded border">
-                      <div className="text-slate-500 text-xs font-medium">NO₂</div>
-                      <div className="text-slate-800 font-semibold">{station.pollutants.no2} ppb</div>
-                    </div>
-                    <div className="bg-slate-50 p-2 rounded border">
-                      <div className="text-slate-500 text-xs font-medium">O₃</div>
-                      <div className="text-slate-800 font-semibold">{station.pollutants.o3} ppb</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 p-2 rounded border-l-4 border-blue-400">
-                    <div className="text-xs font-medium text-blue-800 mb-1">Health Impact</div>
-                    <div className="text-xs text-blue-700 leading-relaxed">{getHealthImpact(station.aqi)}</div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                      <span>Live Data</span>
-                    </div>
-                    <span>Updated: {new Date(station.lastUpdated).toLocaleTimeString()}</span>
-                  </div>
-
-                  <div className="text-center">
-                    <div className="text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded">
-                      Click marker for detailed analysis dashboard
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-      </MapContainer>
-    </div>
-  )
-}
-
-export function LeafletAirQualityMap({
-  center = [20.5937, 78.9629], // India center for better overview
-  zoom = 6,
-  className = "",
-}: LeafletAirQualityMapProps) {
-  const [selectedPollutant, setSelectedPollutant] = useState<string>("pm25")
-  const [mapLayer, setMapLayer] = useState<string>("satellite")
-  const [timeHour, setTimeHour] = useState<number>(12)
-  const [isPlaying, setIsPlaying] = useState<boolean>(false)
-  const [selectedStation, setSelectedStation] = useState<MonitoringStation | null>(null)
-  const intervalRef = useRef<NodeJS.Timeout>()
-  const [currentCity, setCurrentCity] = useState({
-    name: "India Overview",
-    center: [20.5937, 78.9629],
-    zoom: 6,
-  })
-
-  const majorCities = [
-    { name: "India Overview", center: [20.5937, 78.9629], zoom: 6 },
-    { name: "Mumbai", center: [19.076, 72.8777], zoom: 11 },
-    { name: "Delhi", center: [28.6315, 77.2167], zoom: 11 },
-    { name: "Bangalore", center: [12.9716, 77.5946], zoom: 11 },
-    { name: "Chennai", center: [13.0827, 80.2707], zoom: 11 },
-    { name: "Kolkata", center: [22.5726, 88.3639], zoom: 11 },
-    { name: "Pune", center: [18.5204, 73.8567], zoom: 11 },
-    { name: "Hyderabad", center: [17.385, 78.4867], zoom: 11 },
-    { name: "Ahmedabad", center: [23.0225, 72.5714], zoom: 11 },
-    { name: "Jaipur", center: [26.9124, 75.7873], zoom: 11 },
-    { name: "Surat", center: [21.1702, 72.8311], zoom: 11 },
-    { name: "Lucknow", center: [26.8467, 80.9462], zoom: 11 },
-    { name: "Kanpur", center: [26.4499, 80.3319], zoom: 11 },
-    { name: "Nagpur", center: [21.1458, 79.0882], zoom: 11 },
-    { name: "Indore", center: [22.7196, 75.8577], zoom: 11 },
-    { name: "Patna", center: [25.5941, 85.1376], zoom: 11 },
-    { name: "Bhopal", center: [23.2599, 77.4126], zoom: 11 },
-    { name: "Visakhapatnam", center: [17.6868, 83.2185], zoom: 11 },
-    { name: "Coimbatore", center: [11.0168, 76.9558], zoom: 11 },
-  ]
-
-  console.log("[v0] Major cities array:", majorCities.length, "cities")
-  console.log("[v0] Current city:", currentCity.name)
-
-  // Time-lapse animation
   useEffect(() => {
     if (isPlaying) {
       intervalRef.current = setInterval(() => {
@@ -783,85 +524,198 @@ export function LeafletAirQualityMap({
   const shareLocation = () => {
     console.log("[v0] Sharing location...")
     if (typeof window !== "undefined") {
-      const url = `${window.location.origin}/dashboard?lat=${center[0]}&lng=${center[1]}`
+      const url = `${window.location.origin}/dashboard?lat=${mapCenter[0]}&lng=${mapCenter[1]}`
       navigator.clipboard.writeText(url)
       alert("Location link copied to clipboard!")
     }
   }
 
-  const getAQIColor = (aqi: number): string => {
-    if (aqi <= 50) return "#10b981" // Green - Good
-    if (aqi <= 100) return "#f59e0b" // Yellow - Moderate
-    if (aqi <= 150) return "#f97316" // Orange - Unhealthy for Sensitive
-    if (aqi <= 200) return "#ef4444" // Red - Unhealthy
-    if (aqi <= 300) return "#8b5cf6" // Purple - Very Unhealthy
-    return "#7c2d12" // Maroon - Hazardous
-  }
-
-  const getAQILabel = (aqi: number): string => {
-    if (aqi <= 50) return "Good"
-    if (aqi <= 100) return "Moderate"
-    if (aqi <= 150) return "Unhealthy for Sensitive Groups"
-    if (aqi <= 200) return "Unhealthy"
-    if (aqi <= 300) return "Very Unhealthy"
-    return "Hazardous"
-  }
-
-  const getStationIcon = (type: string) => {
-    switch (type) {
-      case "government":
-        return "🏛️" // Government monitoring station
-      case "industrial":
-        return "🏭" // Industrial area monitor
-      case "residential":
-        return "🏠" // Residential area monitor
-      case "traffic":
-        return "🚗" // Traffic junction monitor
-      default:
-        return "📍" // Default location marker
-    }
+  if (!leafletLoaded || !mapReady) {
+    return (
+      <div
+        className={`relative w-full h-full min-h-[500px] bg-slate-800 rounded-lg flex items-center justify-center ${className}`}
+      >
+        <div className="text-white">Loading map...</div>
+      </div>
+    )
   }
 
   return (
     <div className={`relative w-full h-full ${className}`}>
-      {/* Enhanced Map Controls */}
-      <div className="absolute top-4 left-4 z-[1000] space-y-2 max-w-xs">
+      {/* Search Interface */}
+      <div className="absolute top-4 left-4 z-[1000] w-80">
+        <div className="relative">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <input
+              type="text"
+              placeholder="Search cities (e.g., Mumbai, Delhi, Bangalore...)"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                searchCities(e.target.value)
+              }}
+              className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => {
+                  setSearchTerm("")
+                  setShowSearchResults(false)
+                }}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Search Results Dropdown */}
+          {showSearchResults && searchResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto z-[1001]">
+              {searchResults.map((city, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSearchSelect(city)}
+                  className="w-full px-4 py-2 text-left text-white hover:bg-gray-700 flex items-center justify-between border-b border-gray-700 last:border-b-0"
+                >
+                  <div>
+                    <div className="font-medium">{city.name}</div>
+                    {city.state && <div className="text-sm text-gray-400">{city.state}</div>}
+                  </div>
+                  <MapPin className="h-4 w-4 text-blue-400" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Map Container */}
+      <div className="w-full h-full min-h-[500px] bg-slate-800 rounded-lg overflow-hidden">
+        {leafletLoaded && mapReady && (
+          <MapContainer
+            center={mapCenter}
+            zoom={mapZoom}
+            style={{ height: "100%", width: "100%" }}
+            className="leaflet-container"
+          >
+            <TileLayer
+              url={
+                mapLayer === "satellite"
+                  ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                  : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              }
+              attribution={
+                mapLayer === "satellite"
+                  ? '&copy; <a href="https://www.esri.com/">Esri</a>'
+                  : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              }
+            />
+
+            {/* Heatmap Circles */}
+            {heatmapData.map((point, index) => (
+              <Circle
+                key={`heatmap-${index}-${timeHour}`}
+                center={point.position}
+                radius={Math.max(800, point.intensity * 2500)}
+                fillColor={getAQIColor(point.aqi)}
+                fillOpacity={Math.max(0.2, point.intensity * 0.4)}
+                stroke={true}
+                color={getAQIColor(point.aqi)}
+                weight={1}
+                opacity={0.7}
+              >
+                <Popup>
+                  <div className="text-sm">
+                    <div className="font-semibold">AQI: {Math.round(point.aqi)}</div>
+                    <div className="text-xs text-gray-600">
+                      {point.aqi <= 50
+                        ? "Good"
+                        : point.aqi <= 100
+                          ? "Moderate"
+                          : point.aqi <= 150
+                            ? "Unhealthy for Sensitive"
+                            : point.aqi <= 200
+                              ? "Unhealthy"
+                              : point.aqi <= 300
+                                ? "Very Unhealthy"
+                                : "Hazardous"}
+                    </div>
+                  </div>
+                </Popup>
+              </Circle>
+            ))}
+
+            {/* Monitoring Stations */}
+            {monitoringStations.map((station) => (
+              <Marker
+                key={station.id}
+                position={station.position}
+                eventHandlers={{
+                  click: () => setSelectedStation(station),
+                }}
+              >
+                <Popup>
+                  <div className="text-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">{getStationIcon(station.type)}</span>
+                      <div>
+                        <div className="font-semibold">{station.name}</div>
+                        <div className="text-xs text-gray-600">{station.city}</div>
+                      </div>
+                    </div>
+                    <div className="mb-2">
+                      <span className="font-medium">AQI: </span>
+                      <span className="font-bold" style={{ color: getAQIColor(station.aqi) }}>
+                        {station.aqi}
+                      </span>
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+        )}
+      </div>
+
+      {/* Controls */}
+      <div className="absolute top-4 right-4 z-[1000] space-y-2">
         <Card className="p-3 bg-slate-900/95 border-slate-700 backdrop-blur-sm">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-slate-400" />
               <Select
-                value={currentCity.name}
+                value={selectedCity}
                 onValueChange={(value) => {
-                  console.log("[v0] City selected:", value)
                   const city = majorCities.find((c) => c.name === value)
                   if (city) {
-                    console.log("[v0] Setting city:", city)
-                    setCurrentCity(city)
+                    setSelectedCity(city.name)
+                    setMapCenter(city.center)
+                    setMapZoom(city.zoom)
                   }
                 }}
               >
                 <SelectTrigger className="w-48 h-8 bg-slate-800 border-slate-600 text-xs text-white">
                   <SelectValue placeholder="Select a city" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-600">
-                  {majorCities.map((city) => {
-                    console.log("[v0] Rendering city option:", city.name)
-                    return (
-                      <SelectItem
-                        key={city.name}
-                        value={city.name}
-                        className="text-white hover:bg-slate-700 focus:bg-slate-700"
-                      >
-                        {city.name}
-                      </SelectItem>
-                    )
-                  })}
+                <SelectContent className="bg-slate-800 border-slate-600 max-h-60 overflow-y-auto z-[1002]">
+                  {majorCities.map((city) => (
+                    <SelectItem
+                      key={city.name}
+                      value={city.name}
+                      className="text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium">{city.name}</span>
+                        {city.state && <span className="text-xs text-slate-400">{city.state}</span>}
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Layer Switcher */}
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-slate-400" />
               <Select value={mapLayer} onValueChange={setMapLayer}>
@@ -875,23 +729,6 @@ export function LeafletAirQualityMap({
               </Select>
             </div>
 
-            {/* Pollutant Selector */}
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-cyan-500 rounded-full" />
-              <Select value={selectedPollutant} onValueChange={setSelectedPollutant}>
-                <SelectTrigger className="w-32 h-8 bg-slate-800 border-slate-600">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pm25">PM2.5</SelectItem>
-                  <SelectItem value="pm10">PM10</SelectItem>
-                  <SelectItem value="no2">NO₂</SelectItem>
-                  <SelectItem value="o3">O₃</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Time Controls */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-slate-400" />
@@ -917,7 +754,6 @@ export function LeafletAirQualityMap({
           </div>
         </Card>
 
-        {/* Action Buttons */}
         <div className="flex gap-2">
           <Button
             size="sm"
@@ -938,86 +774,7 @@ export function LeafletAirQualityMap({
         </div>
       </div>
 
-      {/* Enhanced Station Details Panel */}
-      {selectedStation && (
-        <div className="absolute top-4 right-4 z-[1000] w-80 max-h-[calc(100vh-8rem)] overflow-y-auto">
-          <Card className="p-4 bg-slate-900/95 border-slate-700 backdrop-blur-sm">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{getStationIcon(selectedStation.type)}</span>
-                  <div>
-                    <h3 className="font-semibold text-white text-sm">{selectedStation.name}</h3>
-                    <p className="text-xs text-slate-400">
-                      {selectedStation.city} • {selectedStation.type} station
-                    </p>
-                  </div>
-                </div>
-                <Button size="sm" variant="ghost" onClick={() => setSelectedStation(null)} className="h-6 w-6 p-0">
-                  ×
-                </Button>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-2 bg-slate-800/50 rounded">
-                  <span className="text-sm text-slate-400">Current AQI</span>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: getAQIColor(selectedStation.aqi) }}
-                    />
-                    <span className="font-bold text-white text-lg">{selectedStation.aqi}</span>
-                  </div>
-                </div>
-
-                <div className="text-center">
-                  <span className="text-sm font-medium" style={{ color: getAQIColor(selectedStation.aqi) }}>
-                    {getAQILabel(selectedStation.aqi)}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="bg-slate-800/30 p-2 rounded">
-                    <div className="text-slate-400 text-xs">PM2.5</div>
-                    <div className="text-white font-medium">{selectedStation.pollutants.pm25} μg/m³</div>
-                  </div>
-                  <div className="bg-slate-800/30 p-2 rounded">
-                    <div className="text-slate-400 text-xs">PM10</div>
-                    <div className="text-white font-medium">{selectedStation.pollutants.pm10} μg/m³</div>
-                  </div>
-                  <div className="bg-slate-800/30 p-2 rounded">
-                    <div className="text-slate-400 text-xs">NO₂</div>
-                    <div className="text-white font-medium">{selectedStation.pollutants.no2} ppb</div>
-                  </div>
-                  <div className="bg-slate-800/30 p-2 rounded">
-                    <div className="text-slate-400 text-xs">O₃</div>
-                    <div className="text-white font-medium">{selectedStation.pollutants.o3} ppb</div>
-                  </div>
-                </div>
-
-                <div className="text-xs text-slate-500 pt-2 border-t border-slate-700 flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  Last updated: {new Date(selectedStation.lastUpdated).toLocaleTimeString()}
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Map Container */}
-      <div className="w-full h-full min-h-[500px] bg-slate-800 rounded-lg overflow-hidden">
-        <MapComponent
-          center={currentCity.center}
-          zoom={currentCity.zoom}
-          selectedPollutant={selectedPollutant}
-          mapLayer={mapLayer}
-          timeHour={timeHour}
-          onStationSelect={setSelectedStation}
-        />
-      </div>
-
-      {/* Enhanced Legend */}
+      {/* Legend */}
       <div className="absolute bottom-4 right-4 z-[1000] max-w-xs">
         <Card className="p-3 bg-slate-900/95 border-slate-700 backdrop-blur-sm">
           <h4 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
